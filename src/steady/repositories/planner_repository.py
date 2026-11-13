@@ -38,6 +38,45 @@ class PlannerRepository:
         )
         return [dict(row) for row in rows]
 
+    def copy_tasks(self, source_day: date | str, target_day: date | str) -> int:
+        """Copy every task occurrence from one date to another as fresh tasks.
+
+        Task content and planning metadata are retained, while workflow state and
+        reflection data are reset. Existing tasks on the target date are untouched.
+        """
+        source_value = self._date_text(source_day)
+        target_value = self._date_text(target_day)
+        if source_value == target_value:
+            raise ValueError("Choose a different source date from the selected date.")
+        if date.fromisoformat(target_value) < date.today():
+            raise ValueError("Past dates are read-only. Tasks can only be copied to today or a future date.")
+
+        with self.database.connect() as connection:
+            source_rows = connection.execute(
+                """SELECT title, description, priority, estimate_minutes, sort_order
+                   FROM tasks
+                   WHERE scheduled_date = ?
+                   ORDER BY sort_order, id""",
+                (source_value,),
+            ).fetchall()
+            if not source_rows:
+                return 0
+
+            connection.executemany(
+                """INSERT INTO tasks
+                       (title, description, scheduled_date, priority, estimate_minutes,
+                        status, sort_order, miss_reason_id, reflection_note, completed_at)
+                   VALUES (?, ?, ?, ?, ?, 'todo', ?, NULL, '', NULL)""",
+                [
+                    (
+                        row["title"], row["description"], target_value,
+                        row["priority"], row["estimate_minutes"], row["sort_order"],
+                    )
+                    for row in source_rows
+                ],
+            )
+        return len(source_rows)
+
     def add_task(
         self,
         *,

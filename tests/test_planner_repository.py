@@ -180,3 +180,79 @@ def test_tasks_can_be_rescheduled_to_future_but_not_past(tmp_path: Path) -> None
         assert "today or a future" in str(exc)
     else:
         raise AssertionError("Expected scheduling into the past to be rejected")
+
+
+def test_copy_tasks_adds_fresh_tasks_and_preserves_existing_target_tasks(tmp_path: Path) -> None:
+    from datetime import timedelta
+
+    repository = make_repository(tmp_path)
+    source_day = date.today() - timedelta(days=1)
+    target_day = date.today() + timedelta(days=2)
+
+    repository.database.execute(
+        """INSERT INTO tasks
+               (title, description, scheduled_date, priority, estimate_minutes, status, completed_at)
+           VALUES (?, ?, ?, ?, ?, 'done', ?)""",
+        ("Read a paper", "Start with the abstract", source_day.isoformat(), 3, 35, "2026-11-12T10:00:00Z"),
+    )
+    repository.database.execute(
+        """INSERT INTO tasks
+               (title, description, scheduled_date, priority, estimate_minutes, status)
+           VALUES (?, ?, ?, ?, ?, 'in_progress')""",
+        ("Quantum Computing", "Practice circuits", source_day.isoformat(), 2, 45),
+    )
+    original_target_id = repository.add_task(
+        title="Already planned", day=target_day, priority=1,
+    )
+
+    copied_count = repository.copy_tasks(source_day, target_day)
+
+    assert copied_count == 2
+    target_tasks = repository.list_tasks(target_day)
+    assert len(target_tasks) == 3
+    assert target_tasks[0]["id"] == original_target_id
+    copied = target_tasks[1:]
+    assert [task["title"] for task in copied] == ["Read a paper", "Quantum Computing"]
+    assert copied[0]["description"] == "Start with the abstract"
+    assert copied[0]["priority"] == 3
+    assert copied[0]["estimate_minutes"] == 35
+    assert all(task["status"] == "todo" for task in copied)
+    assert all(task["completed_at"] is None for task in copied)
+    assert all(task["miss_reason_id"] is None for task in copied)
+    assert all(task["reflection_note"] == "" for task in copied)
+
+
+def test_copy_tasks_returns_zero_for_empty_source_date(tmp_path: Path) -> None:
+    from datetime import timedelta
+
+    repository = make_repository(tmp_path)
+    assert repository.copy_tasks(date.today() - timedelta(days=1), date.today()) == 0
+
+
+def test_copy_tasks_rejects_same_source_and_target_date(tmp_path: Path) -> None:
+    repository = make_repository(tmp_path)
+    today = date.today()
+    try:
+        repository.copy_tasks(today, today)
+    except ValueError as exc:
+        assert "different source date" in str(exc)
+    else:
+        raise AssertionError("Expected copying from the selected date to be rejected")
+
+
+def test_copy_tasks_rejects_past_target_date(tmp_path: Path) -> None:
+    from datetime import timedelta
+
+    repository = make_repository(tmp_path)
+    source_day = date.today() - timedelta(days=2)
+    target_day = date.today() - timedelta(days=1)
+    repository.database.execute(
+        "INSERT INTO tasks(title, scheduled_date) VALUES (?, ?)",
+        ("Source task", source_day.isoformat()),
+    )
+    try:
+        repository.copy_tasks(source_day, target_day)
+    except ValueError as exc:
+        assert "Past dates are read-only" in str(exc)
+    else:
+        raise AssertionError("Expected copying into a past date to be rejected")

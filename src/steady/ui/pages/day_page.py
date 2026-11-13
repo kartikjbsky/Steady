@@ -26,6 +26,7 @@ from PySide6.QtWidgets import (
 
 from steady.database import Database
 from steady.repositories.planner_repository import PlannerRepository
+from steady.ui.dialogs.copy_tasks_dialog import CopyTasksDialog
 from steady.ui.dialogs.task_dialog import MissReasonDialog, TaskDialog
 from .base_page import BasePage
 
@@ -138,11 +139,18 @@ class DayPage(BasePage):
         hint = QLabel("Keep tasks small and specific. You can edit a task by double-clicking its name.")
         hint.setObjectName("muted")
         hint.setWordWrap(True)
+        self.copy_tasks_button = QPushButton("Copy from date")
+        self.copy_tasks_button.setObjectName("subtleButton")
+        self.copy_tasks_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.copy_tasks_button.setToolTip("Add a copy of the tasks from another date")
+        self.copy_tasks_button.clicked.connect(self._copy_tasks)
+
         self.add_task_button = QPushButton("＋  Add task")
         self.add_task_button.setObjectName("primaryButton")
         self.add_task_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.add_task_button.clicked.connect(self._add_task)
         toolbar.addWidget(hint, 1)
+        toolbar.addWidget(self.copy_tasks_button)
         toolbar.addWidget(self.add_task_button)
         card_layout.addLayout(toolbar)
 
@@ -193,6 +201,12 @@ class DayPage(BasePage):
 
     def load_day(self, selected_day: date) -> None:
         self.current_day = selected_day
+        self.copy_tasks_button.setEnabled(selected_day >= date.today())
+        self.copy_tasks_button.setToolTip(
+            "Add a copy of the tasks from another date"
+            if selected_day >= date.today()
+            else "Past dates are read-only"
+        )
         self.selected_date_changed.emit(selected_day)
         tasks = self.repository.list_tasks(selected_day)
         habits = self.repository.list_habits(selected_day)
@@ -295,6 +309,50 @@ class DayPage(BasePage):
                 note.setWordWrap(True)
                 layout.addWidget(note)
             self.habit_list_layout.addWidget(row)
+
+    def _copy_tasks(self) -> None:
+        dialog = CopyTasksDialog(self.current_day, self)
+        if not dialog.exec():
+            return
+
+        source_day = dialog.source_day()
+        if source_day == self.current_day:
+            QMessageBox.information(
+                self, "Choose another date",
+                "The source date must be different from the selected date.",
+            )
+            return
+
+        source_tasks = self.repository.list_tasks(source_day)
+        if not source_tasks:
+            QMessageBox.information(
+                self, "No tasks to copy",
+                f"There are no tasks planned for {source_day.strftime('%a, %d %b %Y')}.",
+            )
+            return
+
+        answer = QMessageBox.question(
+            self,
+            "Copy tasks?",
+            f"Copy {len(source_tasks)} task(s) from "
+            f"{source_day.strftime('%a, %d %b %Y')} to "
+            f"{self.current_day.strftime('%a, %d %b %Y')}?\n\n"
+            "They will be added to the existing task list with status set to To do.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            copied = self.repository.copy_tasks(source_day, self.current_day)
+            self.load_day(self.current_day)
+            QMessageBox.information(
+                self, "Tasks copied",
+                f"Added {copied} task(s) to the selected date.",
+            )
+        except (ValueError, RuntimeError) as exc:
+            QMessageBox.warning(self, "Could not copy tasks", str(exc))
 
     def _add_task(self) -> None:
         dialog = TaskDialog(self)

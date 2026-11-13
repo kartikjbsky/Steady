@@ -4,7 +4,7 @@ from steady.app_info import APP_DESCRIPTION, APP_VERSION, AUTHOR_NAME, CONTACT_E
 
 
 def test_public_app_metadata_is_configured_and_versioned():
-    assert APP_VERSION == "1.0.0"
+    assert APP_VERSION == "1.0.1"
     assert AUTHOR_NAME.strip()
     assert APP_DESCRIPTION.strip()
     assert isinstance(CONTACT_EMAIL, str)

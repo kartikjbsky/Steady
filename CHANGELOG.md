@@ -1,5 +1,14 @@
 # Steady Changelog
 
+## 1.0.1 — Copy tasks between dates
+- Added a Daily Plan action to copy all tasks from a chosen source date into the currently selected date.
+- Existing tasks on the destination date are preserved; copied tasks retain their title, details, priority and estimate.
+- Copied tasks start as To do, with completion and reflection data cleared.
+- Past dates remain read-only, and copying into a past date is blocked.
+- No database schema migration is required.
+
+# Steady Changelog
+
 ## 0.9.5 — Dark/light theme isolation
 - Fixed light parchment backgrounds persisting in scrollable pages after switching back to dark mode.
 - Added explicit dark backgrounds and cleared light-only background images for stacked pages, scroll areas, viewports, and scroll-content widgets.

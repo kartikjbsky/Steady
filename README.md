@@ -72,7 +72,7 @@ steady_app/
 └── tests/
 ```
 
-## Features included in v1.0.0 source
+## Features included in v1.0.1 source
 
 Implemented:
 
@@ -83,6 +83,7 @@ Implemented:
 - Light/dark theme switching, persisted in SQLite
 - Daily Plan date selector with previous / next / today controls
 - Add, edit, remove and date-scope tasks
+- Copy all tasks from any chosen source date into the selected Daily Plan date; copied tasks retain planning details but reset to To do
 - Inline task priority, estimate and status controls
 - Optional reflection prompt when a task is marked missed
 - Daily habit checkboxes with per-date persistence (new day entries default to pending/unchecked)
@@ -162,9 +163,9 @@ python packaging/package_release.py
 
 Output is written to `release/`:
 
-- Linux: `Steady-1.0.0-Linux-x86_64.tar.gz`. Extract it and run `./install.sh` to create an application-menu entry, or run `./app/Steady` directly.
-- Windows: `Steady-1.0.0-Windows-x64.zip`. Extract the full folder and double-click `Steady.exe`. Optional `Create-Shortcut.ps1` creates a desktop shortcut.
-- macOS: `Steady-1.0.0-macOS-<arch>.zip`. Extract and move `Steady.app` into Applications.
+- Linux: `Steady-1.0.1-Linux-x86_64.tar.gz`. Extract it and run `./install.sh` to create an application-menu entry, or run `./app/Steady` directly.
+- Windows: `Steady-1.0.1-Windows-x64.zip`. Extract the full folder and double-click `Steady.exe`. Optional `Create-Shortcut.ps1` creates a desktop shortcut.
+- macOS: `Steady-1.0.1-macOS-<arch>.zip`. Extract and move `Steady.app` into Applications.
 
 The build uses one-folder mode intentionally. It is easier to troubleshoot and avoids the repeated extraction delay of a one-file build. Do not separate the executable from its `_internal` support folder.
 
@@ -176,8 +177,8 @@ The build uses one-folder mode intentionally. It is easier to troubleshoot and a
 
    ```bash
    git add .
-   git commit -m "Prepare Steady 1.0.0 release"
-   git tag v1.0.0
+   git commit -m "Prepare Steady 1.0.1 release"
+   git tag v1.0.1
    git push origin main --tags
    ```
 
