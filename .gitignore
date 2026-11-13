@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+release/
+*.spec.bak
+.DS_Store
+Thumbs.db
+packaging/steady.icns
+packaging/steady.iconset/
+# Local user data must never be committed or included in public source releases.
+*.sqlite
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+backups/
+Steady_Export_*/
+local-data/

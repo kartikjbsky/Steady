@@ -1,0 +1,2 @@
+# Matplotlib is now included in requirements.txt for the Progress page.
+-r requirements.txt

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steady-adhd-planner"
+dynamic = ["version"]
+description = "An offline, low-friction desktop planner for students and researchers"
+requires-python = ">=3.11"
+dependencies = ["PySide6>=6.8,<7", "matplotlib>=3.8,<4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "pyinstaller>=6,<7"]
+
+[tool.setuptools.dynamic]
+version = {attr = "steady.app_info.APP_VERSION"}
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"steady.database" = ["schema.sql"]
+"steady.assets" = ["*.wav", "*.png"]
