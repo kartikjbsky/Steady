@@ -32,7 +32,7 @@ def test_create_custom_habit_and_schedule_only_selected_days(tmp_path: Path) -> 
 def test_edit_pause_resume_and_archive_keep_habit_history(tmp_path: Path) -> None:
     database, habits, planner = make_repositories(tmp_path)
     day = date(2026, 11, 13)
-    habit_id = habits.create_habit(name="Read research paper", category="research")
+    habit_id = habits.create_habit(name="Read research paper", category="research", start_date=day)
     planner.set_habit_status(habit_id, day, "done")
 
     habits.update_habit(habit_id, name="Read one research paper", weekday_mask="1111100")
