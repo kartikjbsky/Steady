@@ -35,6 +35,7 @@ from steady.database import Database
 from steady.repositories.focus_repository import FocusRepository
 from steady.repositories.planner_repository import PlannerRepository
 from steady.repositories.settings_repository import SettingsRepository
+from steady.services.alarm_sound import AlarmSound
 from .base_page import BasePage
 
 
@@ -161,6 +162,7 @@ class FocusPage(BasePage):
         self.repository = FocusRepository(database)
         self.planner_repository = PlannerRepository(database)
         self.settings = SettingsRepository(database)
+        self.alarm_sound = AlarmSound(self)
 
         # Any running row left by a previous crash or forced exit is retained
         # in history as interrupted rather than being silently lost.
@@ -256,10 +258,22 @@ class FocusPage(BasePage):
         self.open_plan_button.clicked.connect(self.open_daily_plan_requested.emit)
         self.open_plan_button.setAccessibleName("Open Daily Plan")
 
-        self.sound_checkbox = QCheckBox("Play a system beep when a timer or reminder is due")
-        saved_sound = self.settings.get("focus_sound", "0") == "1"
+        self.sound_checkbox = QCheckBox("Play an audible chime for reminders and timer completion")
+        self.sound_checkbox.setToolTip(
+            "Play Steady's short built-in two-pass chime when a reminder is due or a timer finishes."
+        )
+        # Audible alerts are enabled on fresh installs. A user's saved mute choice is respected.
+        saved_sound = self.settings.get("focus_sound", "1") == "1"
         self.sound_checkbox.setChecked(saved_sound)
         self.sound_checkbox.toggled.connect(self._save_sound_preference)
+
+        self.test_sound_button = QPushButton("Test sound")
+        self.test_sound_button.setObjectName("subtleButton")
+        self.test_sound_button.setToolTip(
+            "Preview the chime. This test plays even when automatic alerts are muted."
+        )
+        self.test_sound_button.setAccessibleName("Test reminder and timer alarm sound")
+        self.test_sound_button.clicked.connect(self.alarm_sound.play)
 
         controls = QFormLayout()
         controls.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
@@ -286,7 +300,11 @@ class FocusPage(BasePage):
         button_row.addWidget(self.pause_button)
         button_row.addWidget(self.stop_button)
         timer_grid.addLayout(button_row, 1, 1)
-        timer_grid.addWidget(self.sound_checkbox, 2, 1)
+        sound_row = QHBoxLayout()
+        sound_row.addWidget(self.sound_checkbox)
+        sound_row.addWidget(self.test_sound_button)
+        sound_row.addStretch(1)
+        timer_grid.addLayout(sound_row, 2, 1)
         timer_layout.addLayout(timer_grid)
 
         self.timer_progress = QProgressBar()
@@ -473,9 +491,7 @@ class FocusPage(BasePage):
         else:
             message = "Break complete. Return to your next task when you're ready."
         self.timer_status.setText(message)
-        if self.sound_checkbox.isChecked():
-            from PySide6.QtWidgets import QApplication
-            QApplication.beep()
+        self._play_alarm_if_enabled()
         self._refresh_history()
 
     def _stop(self) -> None:
@@ -527,6 +543,11 @@ class FocusPage(BasePage):
 
     def _save_sound_preference(self, enabled: bool) -> None:
         self.settings.set("focus_sound", "1" if enabled else "0")
+
+    def _play_alarm_if_enabled(self) -> None:
+        """Play the bundled chime when automatic audible alerts are enabled."""
+        if self.sound_checkbox.isChecked():
+            self.alarm_sound.play()
 
     def _load_task_choices(self) -> None:
         selected = self.task_combo.currentData() if self.task_combo.count() else None
@@ -620,6 +641,7 @@ class FocusPage(BasePage):
         except Exception:
             # A transient database lock should not terminate the GUI timer.
             return
+        alerts_created = 0
         for reminder in due:
             fired = self.repository.mark_reminder_fired(reminder["id"])
             if fired is None:
@@ -631,10 +653,9 @@ class FocusPage(BasePage):
             alert.finished.connect(lambda _result, widget=alert: self._forget_alert(widget))
             self._alert_windows.append(alert)
             alert.show()
-            if self.sound_checkbox.isChecked():
-                from PySide6.QtWidgets import QApplication
-                QApplication.beep()
-        if due:
+            alerts_created += 1
+        if alerts_created:
+            self._play_alarm_if_enabled()
             self._refresh_reminders()
 
     def _snooze_reminder(self, reminder_id: int) -> None:

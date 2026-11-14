@@ -1,3 +1,16 @@
+# Changelog
+
+## 1.0.2 — Monthly progress visualisation
+
+- Added a month-to-date task progress summary to the Progress page.
+- Added daily stacked bars showing completed and still-open tasks across the current month.
+- Added a daily completion-rate line graph to make changes in task completion visible over time.
+- Dates with no planned tasks appear as gaps in the line instead of being treated as zero-percent completion.
+- Kept the existing rolling 7-, 30- and 90-day summaries and all existing data unchanged.
+- Integrated the bundled two-pass chime with reminder alerts and focus/break timer completion.
+- Enabled audible alerts by default on fresh installs, while respecting saved mute preferences.
+- Added a Test sound control and retained an operating-system beep fallback if Qt Multimedia or the WAV asset is unavailable.
+
 # Steady Changelog
 
 ## 1.0.1 — Copy tasks between dates
