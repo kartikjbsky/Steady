@@ -26,8 +26,9 @@ def test_sidebar_uses_full_wordmark_and_copyright():
 def test_application_and_installer_use_icon_only_mark():
     app_source = (ROOT / "src/steady/app.py").read_text(encoding="utf-8")
     assert '"steady_icon.png"' in app_source
-    for name in ("steady.png", "steady.ico", "steady.icns"):
+    for name in ("steady.png", "steady.ico"):
         assert (ROOT / "packaging" / name).is_file()
+    assert (ROOT / "packaging" / "create_macos_icon.py").is_file()
 
 
 def test_settings_feedback_button_opens_the_supplied_form():
