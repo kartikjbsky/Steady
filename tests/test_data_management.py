@@ -30,7 +30,7 @@ def test_backup_creates_valid_snapshot_and_integrity_report(tmp_path: Path):
 
     assert saved.exists()
     assert validation["integrity"] == "ok"
-    assert validation["schema_version"] == 3
+    assert validation["schema_version"] == 5
     assert report["row_counts"]["tasks"] == 1
     assert report["foreign_key_violations"] == 0
 
@@ -49,7 +49,7 @@ def test_restore_replaces_data_and_keeps_a_safety_copy(tmp_path: Path):
     assert task_titles == ["Task in backup"]
     assert safety.exists()
     assert service.validate_database_file(safety)["integrity"] == "ok"
-    assert service.integrity_report()["schema_version"] == 3
+    assert service.integrity_report()["schema_version"] == 5
 
 
 def test_restore_rejects_invalid_file_without_changing_live_database(tmp_path: Path):
@@ -87,8 +87,12 @@ def test_csv_export_contains_each_table_and_manifest(tmp_path: Path):
     manifest = json.loads((export_dir / "manifest.json").read_text(encoding="utf-8"))
     assert (export_dir / "tasks.csv").exists()
     assert (export_dir / "habits.csv").exists()
-    assert manifest["schema_version"] == 3
+    assert (export_dir / "todo_items.csv").exists()
+    assert (export_dir / "timetable_entries.csv").exists()
+    assert manifest["schema_version"] == 5
     assert manifest["tables"]["tasks"]["rows"] == 1
+    assert "todo_items" in manifest["tables"]
+    assert "timetable_entries" in manifest["tables"]
 
     with (export_dir / "tasks.csv").open(encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
@@ -106,3 +110,50 @@ def test_automatic_backup_runs_at_most_once_per_24_hours(tmp_path: Path):
     assert second is None
     assert third is not None and third.exists()
     assert len(list(service.backup_dir.glob("steady_auto_*.sqlite3"))) == 2
+
+
+def test_restore_migrates_schema_v3_backup_and_preserves_its_data(tmp_path: Path):
+    database, service = make_service(tmp_path)
+    PlannerRepository(database).add_task(
+        title="Task from old backup", day=__import__("datetime").date.today()
+    )
+    # Simulate a v1.0.3/schema-3 backup before the To-do checklist table existed.
+    database.execute("DROP TABLE todo_items")
+    database.execute("DROP TABLE timetable_entries")
+    database.execute("PRAGMA user_version = 3")
+    old_backup = service.backup_to(tmp_path / "schema-v3-backup.sqlite3")
+
+    # Restore to a current schema database; the old backup itself remains unchanged.
+    database.initialize()
+    safety = service.restore_from(old_backup)
+
+    report = service.integrity_report()
+    assert report["schema_version"] == 5
+    assert report["row_counts"]["todo_items"] == 0
+    assert report["row_counts"]["timetable_entries"] == 0
+    assert [row["title"] for row in PlannerRepository(database).list_tasks(__import__("datetime").date.today())] == ["Task from old backup"]
+    assert service.validate_database_file(old_backup)["schema_version"] == 3
+    assert safety.exists()
+
+
+
+def test_restore_migrates_schema_v4_backup_and_preserves_todo_data(tmp_path: Path):
+    database, service = make_service(tmp_path)
+    database.execute(
+        "INSERT INTO todo_items(title, deadline_date) VALUES (?, ?)",
+        ("Book ticket", "2026-11-22"),
+    )
+    database.execute("DROP TABLE timetable_entries")
+    database.execute("PRAGMA user_version = 4")
+    old_backup = service.backup_to(tmp_path / "schema-v4-backup.sqlite3")
+
+    database.initialize()
+    safety = service.restore_from(old_backup)
+
+    report = service.integrity_report()
+    assert report["schema_version"] == 5
+    assert report["row_counts"]["timetable_entries"] == 0
+    rows = database.fetch_all("SELECT title FROM todo_items")
+    assert rows[0]["title"] == "Book ticket"
+    assert service.validate_database_file(old_backup)["schema_version"] == 4
+    assert safety.exists()

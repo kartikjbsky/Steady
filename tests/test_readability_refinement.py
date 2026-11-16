@@ -27,8 +27,8 @@ def test_global_typography_and_page_titles_are_larger_and_bold():
     assert 'font-size: 14pt; font-weight: 800;' in base_page
 
 
-def test_visual_asset_and_schema_v3_are_preserved():
+def test_visual_asset_and_current_schema_are_preserved():
     asset = ROOT / "assets" / "ambient_threads.png"
     db = (ROOT / "database" / "db.py").read_text(encoding="utf-8")
     assert asset.is_file()
-    assert "SCHEMA_VERSION = 3" in db
+    assert "SCHEMA_VERSION = 5" in db

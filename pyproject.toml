@@ -24,3 +24,6 @@ where = ["src"]
 [tool.setuptools.package-data]
 "steady.database" = ["schema.sql"]
 "steady.assets" = ["*.wav", "*.png"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

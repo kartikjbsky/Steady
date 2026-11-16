@@ -4,7 +4,8 @@ from pathlib import Path
 from html import escape
 from urllib.parse import quote
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QUrl, QSize
+from PySide6.QtGui import QDesktopServices, QIcon
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -19,6 +20,11 @@ from steady.database import Database
 from steady.app_info import APP_VERSION, AUTHOR_NAME, CONTACT_EMAIL, APP_DESCRIPTION
 from steady.services.data_management import DataManagementError, DataManagementService
 from .base_page import BasePage
+
+
+FEEDBACK_FORM_URL = (
+    "https://docs.google.com/forms/d/e/1FAIpQLSe_Cbsx-IOLbVw8Yd8RrK_ZdqPmG7C_C7G6KZoBWvQbm7lhWA/viewform?usp=publish-editor"
+)
 
 
 class SettingsPage(BasePage):
@@ -88,10 +94,58 @@ class SettingsPage(BasePage):
                 "CONTACT_EMAIL in src/steady/app_info.py and rebuild."
             )
         about_layout.addWidget(contact_label)
-        source_hint = QLabel("Public app details are editable in src/steady/app_info.py.")
+        source_hint = QLabel(" ")
         source_hint.setObjectName("muted")
         source_hint.setWordWrap(True)
         about_layout.addWidget(source_hint)
+
+        feedback_card = self.add_card(
+            "Feedback",
+            "Help improve Steady. Share suggestions, report a problem or tell us what is working well.",
+        )
+        feedback_layout = feedback_card.layout()
+        feedback_hint = QLabel("Your feedback helps shape future improvements.")
+        feedback_hint.setObjectName("muted")
+        feedback_hint.setWordWrap(True)
+        feedback_layout.addWidget(feedback_hint)
+
+        # Use the supplied terracotta banner itself as the clickable control.
+        # It is deliberately centred and prominent, rather than a small text
+        # button tucked into the corner of the Feedback card.
+        feedback_image_path = (
+            Path(__file__).resolve().parents[2]
+            / "assets"
+            / "feedback_form_button.png"
+        )
+        self.feedback_button = QPushButton()
+        self.feedback_button.setObjectName("feedbackImageButton")
+        self.feedback_button.setAccessibleName("Open the Steady feedback Google Form")
+        self.feedback_button.setToolTip("Open the Steady feedback form in your web browser")
+        self.feedback_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.feedback_button.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.feedback_button.setFlat(True)
+        if feedback_image_path.is_file():
+            self.feedback_button.setIcon(QIcon(str(feedback_image_path)))
+            self.feedback_button.setIconSize(QSize(570, 190))
+            self.feedback_button.setFixedSize(590, 200)
+        else:
+            # Keep a usable fallback if an asset is accidentally omitted from a build.
+            self.feedback_button.setText("Open feedback form")
+            self.feedback_button.setObjectName("primaryButton")
+        self.feedback_button.setStyleSheet(
+            "QPushButton#feedbackImageButton { background: transparent; border: 2px solid transparent; padding: 0px; }"
+            "QPushButton#feedbackImageButton:hover { background: rgba(179, 76, 72, 18); border-color: rgba(179, 76, 72, 100); border-radius: 12px; }"
+            "QPushButton#feedbackImageButton:focus { border: 2px solid #b34c48; border-radius: 12px; }"
+            "QPushButton#feedbackImageButton:pressed { background: rgba(179, 76, 72, 35); }"
+        )
+        self.feedback_button.clicked.connect(
+            lambda: QDesktopServices.openUrl(QUrl(FEEDBACK_FORM_URL))
+        )
+        feedback_button_row = QHBoxLayout()
+        feedback_button_row.addStretch(1)
+        feedback_button_row.addWidget(self.feedback_button)
+        feedback_button_row.addStretch(1)
+        feedback_layout.addLayout(feedback_button_row)
 
         data_card = self.add_card(
             "Local data, backups & exports",

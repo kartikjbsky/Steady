@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.2.0 — Branding and feedback
+
+- Replaced the earlier processed sidebar wordmark with the exact full logo image supplied by the user, without further background removal or image processing.
+- Increased the sidebar logo display size and retained the copyright notice beneath it.
+- Applied the icon-only mark to the application window and Linux, Windows and macOS package icons.
+- Replaced the small text feedback control with the supplied terracotta Feedback Form banner image as a large, centred clickable button linked to the supplied Google Form.
+
+## 1.2.0 — Custom weekly timetable matrix
+
+- Added a separate Weekly Timetable workspace page with a Monday-to-Sunday matrix and initially empty activity cells.
+- Clicking any day/time cell opens an editor to add, update or clear a recurring weekly activity and optional notes.
+- Added an individual time-period editor: every row has its own editable start and end time, and periods can have different lengths (for example, 7:00–8:30 followed by 9:00–10:15).
+- Added controls to insert and remove periods, validate that periods are ordered and non-overlapping, and persist the custom weekly grid.
+- Widened the fixed time column, disabled text elision, and enabled horizontal scrolling so complete time ranges remain visible on narrower windows.
+- Preserved saved timetable entries when changing settings by blocking configurations that would hide existing blocks.
+- Added SQLite schema v5 migration from schema v4 while retaining existing checklist, Daily Plan, habit, focus, reminder and reflection data.
+- Extended backup validation and restore to accept schema-v3 and schema-v4 backups and migrate them to schema v5; timetable rows are included in CSV exports.
+
+## 1.1.0 — Workspace to-do checklist and deadline alerts
+
+- Added a dedicated To-do Checklist workspace page for one-off obligations, separate from Daily Plan tasks.
+- Kept each checklist item on one compact row with task, deadline, completion checkbox, notification toggle/time, and edit/remove actions.
+- Added per-item deadline notifications with a selectable local alert time (default 9:00 AM); due alerts use Steady's bundled alarm and saved sound preference.
+- Added overdue indicators, completed-item history, and a compact upcoming-deadlines preview on the Dashboard.
+- Added SQLite schema v4 migration for the new checklist table while preserving existing tasks, habits, focus history and settings.
+- Included checklist data in database validation and CSV export; compatible schema-v3 backups are upgraded on a staged copy during restore.
+- Restricted pytest discovery to the project's `tests/` directory so packaged dependency tests are not collected.
+
 ## 1.0.2 — Monthly progress visualisation
 
 - Added a month-to-date task progress summary to the Progress page.
@@ -7,9 +35,6 @@
 - Added a daily completion-rate line graph to make changes in task completion visible over time.
 - Dates with no planned tasks appear as gaps in the line instead of being treated as zero-percent completion.
 - Kept the existing rolling 7-, 30- and 90-day summaries and all existing data unchanged.
-- Integrated the bundled two-pass chime with reminder alerts and focus/break timer completion.
-- Enabled audible alerts by default on fresh installs, while respecting saved mute preferences.
-- Added a Test sound control and retained an operating-system beep fallback if Qt Multimedia or the WAV asset is unavailable.
 
 # Steady Changelog
 

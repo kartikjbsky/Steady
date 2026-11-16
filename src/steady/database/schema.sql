@@ -1,4 +1,4 @@
--- Steady schema v2. Dates use local YYYY-MM-DD calendar dates.
+-- Steady schema v5. Dates use local YYYY-MM-DD calendar dates.
 -- All *_at timestamps are UTC ISO-8601 strings.
 
 CREATE TABLE IF NOT EXISTS miss_reasons (
@@ -118,3 +118,35 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 
 CREATE INDEX IF NOT EXISTS idx_habits_reminder ON habits(is_active, reminder_enabled, reminder_time);
+
+
+-- Separate one-off obligations with an optional local-time deadline notification.
+CREATE TABLE IF NOT EXISTS todo_items (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    title               TEXT NOT NULL CHECK (length(trim(title)) > 0),
+    deadline_date       TEXT NOT NULL
+                        CHECK (date(deadline_date) IS NOT NULL AND date(deadline_date) = deadline_date),
+    is_completed        INTEGER NOT NULL DEFAULT 0 CHECK (is_completed IN (0, 1)),
+    notification_enabled INTEGER NOT NULL DEFAULT 1 CHECK (notification_enabled IN (0, 1)),
+    notification_time   TEXT NOT NULL DEFAULT '09:00' CHECK (time(notification_time) IS NOT NULL),
+    notified_at         TEXT,
+    created_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at          TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_todo_items_deadline
+    ON todo_items(is_completed, deadline_date, notification_enabled, notification_time);
+
+
+-- Recurring weekly timetable. Only populated cells are stored; blank cells are implicit.
+CREATE TABLE IF NOT EXISTS timetable_entries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    weekday     INTEGER NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+    start_time  TEXT NOT NULL CHECK (time(start_time) IS NOT NULL),
+    title       TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 120),
+    notes       TEXT NOT NULL DEFAULT '' CHECK (length(notes) <= 500),
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    UNIQUE (weekday, start_time)
+);
+CREATE INDEX IF NOT EXISTS idx_timetable_entries_weekday_time
+    ON timetable_entries(weekday, start_time);

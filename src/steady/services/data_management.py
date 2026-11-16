@@ -30,6 +30,8 @@ class DataManagementService:
         "reminders",
         "focus_sessions",
         "app_settings",
+        "todo_items",
+        "timetable_entries",
     }
 
     def __init__(self, database: Database, backup_dir: str | Path | None = None) -> None:
@@ -76,7 +78,12 @@ class DataManagementService:
                     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
                 ).fetchall()
             }
-            missing = sorted(cls.REQUIRED_TABLES - tables)
+            optional_legacy_tables = {
+                3: {"todo_items", "timetable_entries"},
+                4: {"timetable_entries"},
+            }
+            required_tables = cls.REQUIRED_TABLES - optional_legacy_tables.get(schema_version, set())
+            missing = sorted(required_tables - tables)
             if integrity_rows != ["ok"]:
                 raise DataManagementError(
                     "The selected database failed SQLite integrity_check: "
@@ -86,10 +93,10 @@ class DataManagementService:
                 raise DataManagementError(
                     f"The selected database has {len(foreign_rows)} foreign-key violation(s)."
                 )
-            if schema_version != SCHEMA_VERSION:
+            if schema_version not in {3, 4, SCHEMA_VERSION}:
                 raise DataManagementError(
                     f"This backup uses database schema {schema_version}; "
-                    f"this Steady version requires schema {SCHEMA_VERSION}. "
+                    f"this Steady version supports schema 3 and 4 backups and schema {SCHEMA_VERSION}. "
                     "Use a backup made by a compatible Steady release."
                 )
             if missing:
@@ -240,6 +247,8 @@ class DataManagementService:
                 dst.close()
                 src.close()
 
+            staged_database = Database(staged)
+            staged_database.initialize()  # upgrades compatible schema-3/4 backups to schema 5
             self.validate_database_file(staged)
 
             # Connections created by Database are short-lived. Ensure WAL

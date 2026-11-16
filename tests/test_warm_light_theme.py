@@ -45,6 +45,6 @@ def test_light_analytics_uses_matching_parchment_palette():
     assert '"#CDBE9F", "#718FA2", "#89936D", "#A84D47", "#D2C3A5"' in source
 
 
-def test_database_schema_remains_version_three():
+def test_database_schema_uses_version_five_for_weekly_timetable():
     source = (ROOT / "database" / "db.py").read_text(encoding="utf-8")
-    assert "SCHEMA_VERSION = 3" in source
+    assert "SCHEMA_VERSION = 5" in source

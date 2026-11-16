@@ -62,7 +62,7 @@ def test_v1_database_migrates_to_current_schema_in_place(tmp_path: Path) -> None
     assert session["session_type"] == "focus"
     assert habit["category"] == "other"
     assert habit["start_date"] == "1970-01-01"
-    assert version == 3
+    assert version == 5
 
 
 def test_v2_database_migrates_habit_management_columns_in_place(tmp_path: Path) -> None:
@@ -92,4 +92,27 @@ def test_v2_database_migrates_habit_management_columns_in_place(tmp_path: Path) 
     assert habit["start_date"] == "1970-01-01"
     assert habit["reminder_enabled"] == 0
     assert habit["archived_at"] is None
-    assert version == 3
+    assert version == 5
+
+
+def test_v4_database_migrates_weekly_timetable_in_place(tmp_path: Path) -> None:
+    database_path = tmp_path / "legacy-v4.sqlite3"
+    database = Database(database_path)
+    database.initialize()
+    database.execute(
+        "INSERT INTO todo_items(title, deadline_date) VALUES (?, ?)",
+        ("Existing checklist item", "2026-11-20"),
+    )
+    database.execute("DROP TABLE timetable_entries")
+    database.execute("PRAGMA user_version = 4")
+
+    database.initialize()
+
+    version = database.fetch_all("PRAGMA user_version")[0]["user_version"]
+    todo = database.fetch_all("SELECT title FROM todo_items")
+    timetable = database.fetch_all(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'timetable_entries'"
+    )
+    assert version == 5
+    assert todo[0]["title"] == "Existing checklist item"
+    assert len(timetable) == 1

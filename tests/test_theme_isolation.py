@@ -36,6 +36,6 @@ def test_dark_mode_does_not_select_the_paper_asset():
     assert "THREADS_ASSET" in dark
 
 
-def test_database_schema_is_unchanged():
+def test_database_schema_version_includes_weekly_timetable():
     source = (ROOT / "database" / "db.py").read_text(encoding="utf-8")
-    assert "SCHEMA_VERSION = 3" in source
+    assert "SCHEMA_VERSION = 5" in source

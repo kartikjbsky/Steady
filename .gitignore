@@ -22,3 +22,20 @@ packaging/steady.iconset/
 backups/
 Steady_Export_*/
 local-data/
+
+# Build outputs
+*.spec
+
+# Local databases
+*.sqlite3-*
+*.db-wal
+*.db-shm
+
+# User data and backups
+exports/
+
+# Secrets
+.env
+.env.*
+*.pem
+*.key

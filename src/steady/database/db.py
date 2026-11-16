@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 5
 SCHEMA_PATH = Path(__file__).with_name("schema.sql")
 
 DEFAULT_MISS_REASONS = (
@@ -101,6 +101,54 @@ class Database:
                     connection.execute(
                         """CREATE INDEX IF NOT EXISTS idx_habits_reminder
                            ON habits(is_active, reminder_enabled, reminder_time)"""
+                    )
+                    connection.execute("PRAGMA user_version = 3")
+                    current_version = 3
+
+                if current_version == 3:
+                    # v3 -> v4: add a separate one-off to-do checklist. This is
+                    # independent of dated Daily Plan tasks and keeps existing data intact.
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS todo_items (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            title TEXT NOT NULL CHECK (length(trim(title)) > 0),
+                            deadline_date TEXT NOT NULL
+                                CHECK (date(deadline_date) IS NOT NULL AND date(deadline_date) = deadline_date),
+                            is_completed INTEGER NOT NULL DEFAULT 0 CHECK (is_completed IN (0, 1)),
+                            notification_enabled INTEGER NOT NULL DEFAULT 1
+                                CHECK (notification_enabled IN (0, 1)),
+                            notification_time TEXT NOT NULL DEFAULT '09:00'
+                                CHECK (time(notification_time) IS NOT NULL),
+                            notified_at TEXT,
+                            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                            updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+                        )"""
+                    )
+                    connection.execute(
+                        """CREATE INDEX IF NOT EXISTS idx_todo_items_deadline
+                           ON todo_items(is_completed, deadline_date, notification_enabled, notification_time)"""
+                    )
+                    connection.execute("PRAGMA user_version = 4")
+                    current_version = 4
+
+                if current_version == 4:
+                    # v4 -> v5: add the user's recurring Monday-to-Sunday timetable.
+                    # Empty cells are implicit; only populated weekly blocks are stored.
+                    connection.execute(
+                        """CREATE TABLE IF NOT EXISTS timetable_entries (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            weekday INTEGER NOT NULL CHECK (weekday BETWEEN 0 AND 6),
+                            start_time TEXT NOT NULL CHECK (time(start_time) IS NOT NULL),
+                            title TEXT NOT NULL CHECK (length(trim(title)) BETWEEN 1 AND 120),
+                            notes TEXT NOT NULL DEFAULT '' CHECK (length(notes) <= 500),
+                            created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                            updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+                            UNIQUE (weekday, start_time)
+                        )"""
+                    )
+                    connection.execute(
+                        """CREATE INDEX IF NOT EXISTS idx_timetable_entries_weekday_time
+                           ON timetable_entries(weekday, start_time)"""
                     )
                     connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
 

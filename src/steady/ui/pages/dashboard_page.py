@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 from steady.database import Database
 from steady.repositories.focus_repository import FocusRepository
 from steady.repositories.planner_repository import PlannerRepository
+from steady.repositories.todo_repository import TodoRepository
 from .base_page import BasePage
 
 
@@ -20,6 +21,7 @@ class DashboardPage(BasePage):
     open_day_requested = Signal(object)
     open_focus_requested = Signal()
     open_habits_requested = Signal()
+    open_todo_requested = Signal()
 
     def __init__(self, database: Database, parent: QWidget | None = None) -> None:
         super().__init__(
@@ -29,6 +31,7 @@ class DashboardPage(BasePage):
         )
         self.planner = PlannerRepository(database)
         self.focus = FocusRepository(database)
+        self.todos = TodoRepository(database)
 
         self.today_card = self._make_card("Today's overview")
         today_layout = self.today_card.layout()
@@ -65,6 +68,9 @@ class DashboardPage(BasePage):
         grid.addWidget(self.reminders_card, 1, 0)
         grid.addWidget(self.focus_card, 1, 1)
         self.layout.addLayout(grid)
+
+        self.todo_card = self._make_card("To-do deadlines")
+        self.layout.addWidget(self.todo_card)
 
         self.note = QLabel("A small reminder: if the plan changes, you can adjust it. Progress is not a test.")
         self.note.setObjectName("muted")
@@ -161,6 +167,27 @@ class DashboardPage(BasePage):
         manage.setObjectName("subtleButton")
         manage.clicked.connect(self.open_habits_requested.emit)
         habits_layout.addWidget(manage, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        todo_layout = self.todo_card.layout()
+        self._clear_content(todo_layout)
+        todo_items = self.todos.list_items(include_completed=False)[:3]
+        if todo_items:
+            for item in todo_items:
+                due = date.fromisoformat(item["deadline_date"])
+                due_label = "Overdue" if due < today else due.strftime("%d %b")
+                row = QHBoxLayout()
+                label = QLabel(f"{item['title']}  ·  {due_label}")
+                label.setToolTip(f"Deadline: {item['deadline_date']}")
+                label.setStyleSheet("font-weight: 600;")
+                label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                row.addWidget(label, 1)
+                todo_layout.addLayout(row)
+        else:
+            self._add_empty(todo_layout, "No open to-do deadlines. Add one from the checklist.")
+        open_todos = QPushButton("Open to-do checklist")
+        open_todos.setObjectName("subtleButton")
+        open_todos.clicked.connect(self.open_todo_requested.emit)
+        todo_layout.addWidget(open_todos, alignment=Qt.AlignmentFlag.AlignLeft)
 
         reminders_layout = self.reminders_card.layout()
         self._clear_content(reminders_layout)

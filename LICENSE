@@ -1,0 +1,56 @@
+STEADY — PROPRIETARY SOFTWARE LICENCE
+
+Copyright © 2026 Kartikkumar Bagilavaidya. All rights reserved.
+
+Steady, including its original source code, object code, application design,
+user interface, documentation, original artwork, icons, visual identity and
+other original materials (collectively, the “Steady Materials”), is proprietary
+software owned by Kartikkumar Bagilavaidya, except for components and materials
+identified as third-party materials and governed by their respective licences.
+
+NO OPEN-SOURCE LICENCE IS GRANTED
+
+The Steady Materials are not released under the MIT, Apache, GPL, BSD or any
+other open-source licence. No right to access, copy, modify, adapt, publish,
+redistribute, sublicense, sell, rent, lease, host, or create derivative works
+from the Steady source code or other Steady Materials is granted except where
+expressly permitted in a separate written agreement signed by the rights holder
+or where a right cannot lawfully be restricted.
+
+LIMITED FREE PERSONAL-USE PERMISSION
+
+An individual may use an authorised, unmodified binary distribution of Steady
+for that individual's own private, non-commercial purposes, subject to the
+Steady End User Licence Agreement (EULA). This permission is personal,
+non-exclusive, non-transferable and revocable for material breach. It permits
+installation on devices owned or controlled by the same individual, but does
+not permit sharing the installer, publishing copies, or providing access to
+other users or organisations.
+
+PAID COMMERCIAL LICENCE
+
+Use by a business, employer, client, institution, government body, service
+provider, or other organisation, and any professional or revenue-generating
+use, requires a separate paid commercial licence in a written agreement signed
+by the rights holder. No commercial rights arise merely from downloading,
+installing, or possessing Steady.
+
+THIRD-PARTY MATERIALS
+
+Third-party libraries, tools, fonts, media and other components are not owned
+by the Steady rights holder merely because they are bundled with Steady. They
+remain subject to their own licence terms. Those terms prevail for the relevant
+third-party component where they grant rights that differ from this notice.
+See THIRD_PARTY_NOTICES.md and the accompanying licence texts for details.
+
+TRADEMARKS
+
+The Steady name, logo and brand assets may not be used to imply endorsement,
+affiliation, or to market a modified or competing product without prior written
+permission. This notice does not claim that any trademark registration exists.
+
+For permissions and commercial licensing: kartikjbsky@gmail.com
+
+This file is a proprietary rights notice and licence summary. The EULA contains
+the detailed end-user terms. Both should be reviewed by qualified legal counsel
+before commercial distribution.

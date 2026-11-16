@@ -20,7 +20,7 @@ def test_dashboard_and_calendar_date_navigation_helpers_exist():
 
     assert "self.pages[1].set_selected_day(selected_day)" in main
     assert "self.pages[1].selected_date_changed.connect" in main
-    assert "self.pages[4].open_daily_plan_requested.connect" in main
+    assert "self.pages[6].open_daily_plan_requested.connect" in main
 
 
 def test_daily_plan_exposes_bulk_task_copy_action():

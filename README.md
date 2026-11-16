@@ -15,7 +15,7 @@ pip install -e ".[dev]"
 python -m steady
 ```
 
-Run tests with `python -m pytest -q`.
+Run tests with `python -m pytest -q tests/`. Pytest is configured to discover only the project test directory.
 
 ## Project structure
 
@@ -40,7 +40,8 @@ steady_app/
 │   │   ├── habit_repository.py
 │   │   ├── planner_repository.py
 │   │   ├── reflection_repository.py
-│   │   └── settings_repository.py
+│   │   ├── settings_repository.py
+│   │   └── todo_repository.py
 │   ├── services/
 │   │   ├── alarm_sound.py
 │   │   └── duration.py
@@ -61,7 +62,8 @@ steady_app/
 │           ├── focus_page.py
 │           ├── analytics_page.py
 │           ├── reflection_page.py
-│           └── settings_page.py
+│           ├── settings_page.py
+│           └── todo_page.py
 ├── packaging/               # native bundle builders and installers
 │   ├── build_app.py
 │   ├── package_release.py
@@ -72,7 +74,7 @@ steady_app/
 └── tests/
 ```
 
-## Features included in v1.0.1 source
+## Features included in v1.2.0 source
 
 Implemented:
 
@@ -84,10 +86,16 @@ Implemented:
 - Daily Plan date selector with previous / next / today controls
 - Add, edit, remove and date-scope tasks
 - Copy all tasks from any chosen source date into the selected Daily Plan date; copied tasks retain planning details but reset to To do
+- Dedicated one-off To-do Checklist separate from dated Daily Plan tasks, with task, deadline, done checkbox and notification controls arranged in one row
+- Recurring weekly timetable matrix with Monday-to-Sunday columns and editable time blocks; each cell starts empty and opens an editor when clicked
+- Custom timetable start/end times and adjustable 5–240-minute block lengths (5-minute steps), with a wider time column and horizontal scrolling for smaller windows
+- Per-to-do deadline alert with selectable time (default 9:00 AM), overdue visibility and the existing bundled alarm sound
+- Dashboard preview of the next open to-do deadlines
 - Inline task priority, estimate and status controls
 - Optional reflection prompt when a task is marked missed
 - Daily habit checkboxes with per-date persistence (new day entries default to pending/unchecked)
 - Task completion progress indicator
+- Monthly task progress bars and a daily completion-rate line graph on the Progress page
 - Monthly calendar with previous / next month and Today navigation
 - Per-day task and habit completion summaries queried from the same SQLite database as Daily Plan
 - Today's, selected-day and activity indicators
@@ -140,13 +148,13 @@ Edit `src/steady/app_info.py` to change the public application details:
 - `AUTHOR_NAME` — name shown in the application.
 - `CONTACT_EMAIL` — public contact email shown as a clickable mail link.
 
-Before distributing, put the intended public email address in `CONTACT_EMAIL`. The email field is currently intentionally blank because no address has been supplied yet. The build includes the values present when it is packaged; after editing this file, rebuild the application.
+Before distributing, put the intended public email address in `CONTACT_EMAIL`. The public contact email is configured in the current source; verify it before publishing. The build includes the values present when it is packaged; after editing this file, rebuild the application.
 
 ## Data location and upgrades
 
 The SQLite database is stored in the operating system's per-user application-data directory, not beside the executable and not inside the PyInstaller bundle. This means application updates do not overwrite planner data. Backups are stored beside the database in the `backups/` directory. Keep the same application identity (`APP_NAME` and `ORGANIZATION_NAME` in `src/steady/config.py`) between releases so existing installs keep using the same data directory.
 
-The current database schema is version 3. Do not delete or manually replace the live database during an application update. Use Settings → Local data, backups & exports to create or restore backups.
+The current database schema is version 4. Do not delete or manually replace the live database during an application update. Use Settings → Local data, backups & exports to create or restore backups.
 
 ## Build a click-to-launch application
 
@@ -163,9 +171,9 @@ python packaging/package_release.py
 
 Output is written to `release/`:
 
-- Linux: `Steady-1.0.1-Linux-x86_64.tar.gz`. Extract it and run `./install.sh` to create an application-menu entry, or run `./app/Steady` directly.
-- Windows: `Steady-1.0.1-Windows-x64.zip`. Extract the full folder and double-click `Steady.exe`. Optional `Create-Shortcut.ps1` creates a desktop shortcut.
-- macOS: `Steady-1.0.1-macOS-<arch>.zip`. Extract and move `Steady.app` into Applications.
+- Linux: `Steady-1.2.0-Linux-x86_64.tar.gz`. Extract it and run `./install.sh` to create an application-menu entry, or run `./app/Steady` directly.
+- Windows: `Steady-1.2.0-Windows-x64.zip`. Extract the full folder and double-click `Steady.exe`. Optional `Create-Shortcut.ps1` creates a desktop shortcut.
+- macOS: `Steady-1.2.0-macOS-<arch>.zip`. Extract and move `Steady.app` into Applications.
 
 The build uses one-folder mode intentionally. It is easier to troubleshoot and avoids the repeated extraction delay of a one-file build. Do not separate the executable from its `_internal` support folder.
 
@@ -177,8 +185,8 @@ The build uses one-folder mode intentionally. It is easier to troubleshoot and a
 
    ```bash
    git add .
-   git commit -m "Prepare Steady 1.0.1 release"
-   git tag v1.0.1
+   git commit -m "Prepare Steady 1.2.0 release"
+   git tag v1.2.0
    git push origin main --tags
    ```
 
@@ -206,16 +214,16 @@ No application-specific `LICENSE` file has been added because the intended licen
 - WAL mode is enabled for safer concurrent reads and writes.
 - Dates are stored as ISO `YYYY-MM-DD` local calendar dates.
 - Timestamps are stored as UTC ISO-8601 strings.
-- `PRAGMA user_version` records the schema version. The current schema is version 3 and includes migrations from earlier project releases.
+- `PRAGMA user_version` records the schema version. The current schema is version 4 and includes in-place migrations from earlier project releases.
 - Create a manual backup before testing a new application build or updating an existing installation.
 
 ## Tests
 
 ```bash
-python -m pytest -q
+python -m pytest -q tests/
 ```
 
-The suite covers database initialization/migrations, dated tasks, habit schedules and monthly check-ins, focus sessions, reminders, analytics, reflections, backup/restore/export, release metadata and packaging configuration.
+The suite covers database initialization/migrations, dated tasks, the workspace to-do checklist and deadline notifications, habit schedules and monthly check-ins, focus sessions, reminders, analytics, reflections, backup/restore/export, release metadata and packaging configuration.
 
 ## Dependencies and licence notes
 
@@ -239,3 +247,8 @@ user databases or backup files to GitHub or a public ZIP.
 The public About & Contact details are configured in `src/steady/app_info.py`.
 Current public contact: `kartikjbsky@gmail.com`. Changing that file is enough for
 source runs; rebuild the executable archives after changing public metadata.
+
+
+## Branding and feedback
+
+Steady uses the exact supplied full wordmark in the workspace sidebar and the icon-only mark for the application window and platform application icons. The Settings page displays the supplied terracotta Feedback Form banner as a large, centred clickable image that opens the project feedback Google Form in the user's default browser.

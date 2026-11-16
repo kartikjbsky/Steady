@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QKeySequence, QShortcut
+from pathlib import Path
+
+from PySide6.QtGui import QKeySequence, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QButtonGroup,
     QFrame,
@@ -15,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from steady.database import Database
+from steady.repositories.settings_repository import SettingsRepository
 from steady.ui.pages.analytics_page import AnalyticsPage
 from steady.ui.pages.calendar_page import CalendarPage
 from steady.ui.pages.dashboard_page import DashboardPage
@@ -23,6 +26,8 @@ from steady.ui.pages.focus_page import FocusPage
 from steady.ui.pages.habits_page import HabitManagerPage
 from steady.ui.pages.reflection_page import ReflectionPage
 from steady.ui.pages.settings_page import SettingsPage
+from steady.ui.pages.timetable_page import TimetablePage
+from steady.ui.pages.todo_page import TodoPage
 
 
 class MainWindow(QMainWindow):
@@ -31,12 +36,14 @@ class MainWindow(QMainWindow):
     NAV_ITEMS = (
         ("Dashboard", "Alt+1"),
         ("Daily plan", "Alt+2"),
-        ("Habits", "Alt+3"),
-        ("Calendar", "Alt+4"),
-        ("Focus & Reminders", "Alt+5"),
-        ("Progress", "Alt+6"),
-        ("Reflection", "Alt+7"),
-        ("Settings", "Alt+8"),
+        ("To-do checklist", "Alt+3"),
+        ("Timetable", "Alt+4"),
+        ("Habits", "Alt+5"),
+        ("Calendar", "Alt+6"),
+        ("Focus & Reminders", "Alt+7"),
+        ("Progress", "Alt+8"),
+        ("Reflection", "Alt+9"),
+        ("Settings", "Alt+0"),
     )
 
     def __init__(self, database: Database, current_theme: str = "dark", backup_notice: str | None = None) -> None:
@@ -58,18 +65,43 @@ class MainWindow(QMainWindow):
         sidebar.setFixedWidth(232)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setContentsMargins(21, 27, 19, 22)
-        sidebar_layout.setSpacing(9)
+        sidebar_layout.setSpacing(5)
 
-        brand = QLabel("STEADY")
-        brand.setObjectName("brand")
-        brand.setAccessibleName("Steady application")
+        # Use the supplied full wordmark in the sidebar; the icon-only asset is
+        # used for the application window and platform-specific package icons.
+        logo_path = Path(__file__).resolve().parents[1] / "assets" / "steady_wordmark.png"
+        logo = QLabel()
+        logo.setAccessibleName("Steady logo")
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo.setFixedSize(190, 190)
+        logo_pixmap = QPixmap(str(logo_path))
+        if not logo_pixmap.isNull():
+            logo.setPixmap(
+                logo_pixmap.scaled(
+                    190,
+                    190,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+        else:
+            logo.setText("STEADY")
+            logo.setObjectName("brand")
+        sidebar_layout.addWidget(logo, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        copyright = QLabel("© 2026 Kartikkumar Bagilavaidya\nAll rights reserved.")
+        copyright.setObjectName("muted")
+        copyright.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        copyright.setWordWrap(True)
+        copyright.setStyleSheet("font-size: 7.5pt; line-height: 1.2;")
+        sidebar_layout.addWidget(copyright)
+
         strapline = QLabel("A calmer way to organise your day")
         strapline.setObjectName("muted")
         strapline.setWordWrap(True)
         strapline.setMaximumWidth(175)
-        sidebar_layout.addWidget(brand)
         sidebar_layout.addWidget(strapline)
-        sidebar_layout.addSpacing(23)
+        sidebar_layout.addSpacing(8)
 
         sidebar_rule = QFrame()
         sidebar_rule.setObjectName("sidebarDivider")
@@ -86,6 +118,8 @@ class MainWindow(QMainWindow):
         self.pages = [
             DashboardPage(database),
             DayPage(database),
+            TodoPage(database),
+            TimetablePage(database),
             HabitManagerPage(database),
             CalendarPage(database),
             FocusPage(database),
@@ -96,8 +130,8 @@ class MainWindow(QMainWindow):
         self.pages[-1].theme_changed.connect(self.theme_changed.emit)
         self.pages[-1].data_restored.connect(self._after_data_restore)
         self.page_titles = [
-            "Dashboard", "Daily plan", "Habits", "Calendar",
-            "Focus & Reminders", "Progress", "Reflection", "Settings"
+            "Dashboard", "Daily plan", "To-do checklist", "Timetable", "Habits",
+            "Calendar", "Focus & Reminders", "Progress", "Reflection", "Settings"
         ]
         for page in self.pages:
             self.stack.addWidget(page)
@@ -132,17 +166,18 @@ class MainWindow(QMainWindow):
 
         self.nav_group.idClicked.connect(self.navigate)
         self.pages[0].open_day_requested.connect(self.open_day_from_dashboard)
-        self.pages[0].open_focus_requested.connect(lambda: self.navigate(4))
-        self.pages[0].open_habits_requested.connect(lambda: self.navigate(2))
-        self.pages[1].selected_date_changed.connect(self.pages[3].set_focus_date)
-        self.pages[2].habits_changed.connect(self._on_habits_changed)
-        self.pages[3].open_day_requested.connect(self.open_day_from_calendar)
-        self.pages[4].open_daily_plan_requested.connect(lambda: self.navigate(1))
+        self.pages[0].open_todo_requested.connect(lambda: self.navigate(2))
+        self.pages[0].open_focus_requested.connect(lambda: self.navigate(6))
+        self.pages[0].open_habits_requested.connect(lambda: self.navigate(4))
+        self.pages[1].selected_date_changed.connect(self.pages[5].set_focus_date)
+        self.pages[4].habits_changed.connect(self._on_habits_changed)
+        self.pages[5].open_day_requested.connect(self.open_day_from_calendar)
+        self.pages[6].open_daily_plan_requested.connect(lambda: self.navigate(1))
         self.navigate(0)
 
     def closeEvent(self, event) -> None:
         """Persist an active timer as interrupted when the window closes."""
-        focus_page = self.pages[4]
+        focus_page = self.pages[6]
         if hasattr(focus_page, "shutdown"):
             focus_page.shutdown()
         super().closeEvent(event)
@@ -161,10 +196,10 @@ class MainWindow(QMainWindow):
         """Refresh every screen that derives information from habit definitions."""
         self.pages[1].load_day(self.pages[1].current_day)
         self.pages[0].refresh()
-        self.pages[3].refresh()
         self.pages[5].refresh()
+        self.pages[7].refresh()
+        self.pages[8].refresh()
         self.pages[6].refresh()
-        self.pages[4].refresh()
 
     def _after_data_restore(self) -> None:
         """Refresh all database-backed pages after a validated restore."""
@@ -173,7 +208,7 @@ class MainWindow(QMainWindow):
         mode = settings.get("theme", "light") or "light"
         if mode not in {"light", "dark"}:
             mode = "light"
-        self.pages[7].set_current_theme(mode)
+        self.pages[9].set_current_theme(mode)
         self.theme_changed.emit(mode)
 
         self.pages[0].refresh()
@@ -183,6 +218,8 @@ class MainWindow(QMainWindow):
         self.pages[4].refresh()
         self.pages[5].refresh()
         self.pages[6].refresh()
+        self.pages[7].refresh()
+        self.pages[8].refresh()
 
     def navigate(self, index: int) -> None:
         if not 0 <= index < self.stack.count():
@@ -194,6 +231,8 @@ class MainWindow(QMainWindow):
             4: self.pages[4].refresh,
             5: self.pages[5].refresh,
             6: self.pages[6].refresh,
+            7: self.pages[7].refresh,
+            8: self.pages[8].refresh,
         }
         refresh = refresh_by_index.get(index)
         if refresh is not None:
