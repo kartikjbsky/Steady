@@ -252,3 +252,13 @@ source runs; rebuild the executable archives after changing public metadata.
 ## Branding and feedback
 
 Steady uses the exact supplied full wordmark in the workspace sidebar and the icon-only mark for the application window and platform application icons. The Settings page displays the supplied terracotta Feedback Form banner as a large, centred clickable image that opens the project feedback Google Form in the user's default browser.
+
+## Dashboard
+
+<p align="center">
+  <img
+    src="screenshots/dashboard.png"
+    alt="Steady Dashboard"
+    width="100%"
+  >
+</p>
